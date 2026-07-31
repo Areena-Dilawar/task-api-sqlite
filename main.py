@@ -157,18 +157,32 @@ def update_task(task_id: int, updated_task: TaskUpdate):
             detail="Title cannot be empty"
         )
 
-    for task in tasks:
-        if task["id"] == task_id:
-            task["title"] = title
-            task["done"] = updated_task.done
-            return task
-
-    raise HTTPException(
-        status_code=404,
-        detail=f"Task {task_id} not found"
+    # Check if task exists
+    cursor.execute(
+        "SELECT * FROM tasks WHERE id = ?",
+        (task_id,)
     )
 
+    if cursor.fetchone() is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Task {task_id} not found"
+        )
 
+    # Update task
+    cursor.execute(
+        "UPDATE tasks SET title = ?, done = ? WHERE id = ?",
+        (title, updated_task.done, task_id)
+    )
+
+    connection.commit()
+
+    return {
+        "id": task_id,
+        "title": title,
+        "done": updated_task.done
+    }
+    
 @app.delete(
     "/tasks/{task_id}",
     summary="Delete a task",
