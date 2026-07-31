@@ -57,13 +57,6 @@ class TaskUpdate(BaseModel):
     title: str
     done: bool
 
-tasks = [
-    {"id": 1, "title": "Learn FastAPI", "done": False},
-    {"id": 2, "title": "Build CRUD API", "done": False},
-    {"id": 3, "title": "Submit Assignment", "done": False},
-]
-
-
 @app.get("/", summary="API Information")
 def root():
     return {
@@ -182,7 +175,7 @@ def update_task(task_id: int, updated_task: TaskUpdate):
         "title": title,
         "done": updated_task.done
     }
-    
+
 @app.delete(
     "/tasks/{task_id}",
     summary="Delete a task",
@@ -190,12 +183,24 @@ def update_task(task_id: int, updated_task: TaskUpdate):
 )
 def delete_task(task_id: int):
 
-    for index, task in enumerate(tasks):
-        if task["id"] == task_id:
-            tasks.pop(index)
-            return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-    raise HTTPException(
-        status_code=404,
-        detail=f"Task {task_id} not found"
+    # Check if task exists
+    cursor.execute(
+        "SELECT * FROM tasks WHERE id = ?",
+        (task_id,)
     )
+
+    if cursor.fetchone() is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Task {task_id} not found"
+        )
+
+    # Delete task
+    cursor.execute(
+        "DELETE FROM tasks WHERE id = ?",
+        (task_id,)
+    )
+
+    connection.commit()
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
